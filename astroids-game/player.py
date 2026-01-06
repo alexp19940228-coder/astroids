@@ -1,35 +1,13 @@
 import pygame
 from circleshape import CircleShape
-from constants import PLAYER_RADIUS, LINE_WIDTH, PLAYER_TURN_SPEED, PLAYER_SPEED
+from constants import PLAYER_RADIUS, LINE_WIDTH, PLAYER_TURN_SPEED, PLAYER_SPEED, PLAYER_SHOOT_SPEED, PLAYER_SHOT_COOLDOWN_SECONDS
+from shot import Shot
 
-
-"""Player-controlled ship represented as a triangle.
-
-    The player is centered at ``position`` (provided by :class:`CircleShape`) and
-    rendered as a triangle oriented by ``rotation`` (degrees). Movement and
-    turning use constants from :mod:`constants` (``PLAYER_SPEED`` and
-    ``PLAYER_TURN_SPEED``), and the ship's size is set by ``PLAYER_RADIUS``.
-
-    Attributes:
-        position (pygame.Vector2): Center position inherited from
-            :class:`CircleShape`.
-        radius (float): Radius inherited from :class:`CircleShape`.
-        rotation (float): Rotation in degrees; 0 corresponds to the down
-            (0, 1) direction used by pygame vectors.
-
-    Public methods:
-        triangle(): Return three points (pygame.Vector2) forming the ship's
-            triangle for rendering.
-        draw(screen): Render the ship on the given surface.
-        rotate(dt): Rotate the ship by ``PLAYER_TURN_SPEED * dt``.
-        move(dt): Move the ship in the direction of ``rotation`` by
-            ``PLAYER_SPEED * dt``.
-        update(dt): Handle user input (W/A/S/D) to move and rotate the ship.
-"""
 class Player(CircleShape):
     def __init__(self, x, y):
         super().__init__(x, y, PLAYER_RADIUS)
         self.rotation = 0
+        self.shot_cooldown_timer = 0
 
         # Drawing the player as a triangle
     def triangle(self):
@@ -40,19 +18,22 @@ class Player(CircleShape):
         c = self.position - forward * self.radius + right
         return [a, b, c]
 
+    #drawing the player as a white triangle
     def draw(self, screen):
         pygame.draw.polygon(screen, "white", self.triangle(), LINE_WIDTH)
 
+    #rotate the player left and right
     def rotate(self,dt):
         self.rotation += PLAYER_TURN_SPEED * dt
     
-
+    #move the player forward and backward
     def move(self, dt):
         unit_vector = pygame.Vector2(0,1)
         rotated_vector = unit_vector.rotate(self.rotation)
         rotated_with_speed_vector = rotated_vector * PLAYER_SPEED * dt
         self.position += rotated_with_speed_vector
 
+    #update the player based on key presses
     def update(self, dt):
         keys = pygame.key.get_pressed()
 
@@ -64,3 +45,20 @@ class Player(CircleShape):
             self.move(dt)
         if keys[pygame.K_s]:
             self.move(-dt)
+        if keys[pygame.K_SPACE]:
+            self.shoot()
+        self.shot_cooldown_timer -= dt
+    
+    
+    #shoot a shot in the direction the player is facing
+    def shoot(self):
+        if self.shot_cooldown_timer > 0:
+            return
+        else:
+            self.shot_cooldown_timer = PLAYER_SHOT_COOLDOWN_SECONDS
+        shot = Shot(self.position.x, self.position.y)
+        direction = pygame.Vector2(0, 1).rotate(self.rotation)
+        shot.velocity = direction * PLAYER_SHOOT_SPEED
+        
+        
+        
